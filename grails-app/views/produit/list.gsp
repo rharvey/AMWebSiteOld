@@ -34,7 +34,7 @@
 				        filterToolBar="true",
 					    showPager="true"
 				        datatype="'json'"
-						rowNum="10",						
+						rowNum="30",						
 				  		hidegrid="true">
 				        <jqgrid:searchButton id="book" />
 				        <jqgrid:filterToolbar id="commandeStandard" searchOnEnter="false" />
