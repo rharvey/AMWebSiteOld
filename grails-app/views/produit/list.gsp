@@ -31,8 +31,8 @@
 					    autowidth="false"
 				        scrollOffset="0"
 				        viewrecords="true"
-				        	filterToolBar="true",
-					        showPager="true"
+				        filterToolBar="true",
+					    showPager="true"
 				        datatype="'json'"
 						rowNum="10",						
 				  		hidegrid="true">
