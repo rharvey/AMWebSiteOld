@@ -163,9 +163,10 @@ class ProduitController {
 		def totalRows = produits.totalCount
 		def numberOfPages = Math.ceil(totalRows / maxRows)
 		
+		def commande = 0
 		def results = produits?.collect {
 			[
-				 cell: [it.description, it.code, it.emballage, it.format, it.upc, it.prix, it.coutant],
+				 cell: [it.description, it.code, it.emballage, it.format, it.upc, it.prix, it.coutant, commande],
 				 id: it.id
 			]
 		}

@@ -1,100 +1,107 @@
 package am
 
+import grails.converters.JSON;
+
 class ClientController {
 
-    static allowedMethods = [save: "POST", update: "POST", delete: "POST"]
+	def scaffold = true
+	
+	def defaultAction = 'list'
 
-    def index = {
-        redirect(action: "list", params: params)
-    }
+		def editClient = {
+		def result
+		def message = ""
+		def state = "FAIL"
+		def id
 
-    def list = {
-        params.max = Math.min(params.max ? params.int('max') : 10, 100)
-        [clientInstanceList: Client.list(params), clientInstanceTotal: Client.count()]
-    }
+		// determine our action. Grid will pass a param called "oper"
+		switch (params.oper) {
+			// Delete Request
+			case 'del':
+				result = Client.get(params.id)
+				if (result) {
+					result.delete()
+					message = "Client'${result.numero}' Deleted"
+					state = "OK"
+				}
+				break;
+			// Add Request
+			case 'add':
+				result = new Client(params)
+				break;
+			// Edit Request
+			case 'edit':
+				// add or edit instruction sent
+				result = Client.get(params.id)
+				result.properties = params
+				break;
+		}
 
-    def create = {
-        def clientInstance = new Client()
-        clientInstance.properties = params
-        return [clientInstance: clientInstance]
-    }
+		// If we aren't deleting the object then we need to validate and save.
+		// Capture any validation messages to display on the client side
+		if (result && params.oper != "del") {
+			if (!result.hasErrors() && result.save(flush: true)) {
+				message = "Client  '${result.numero}' " + (params.oper == 'add') ? "Added" : "Updated"
+				id = result.id
+				state = "OK"
+			} else {
+				message = "<ul>"
+				result.errors.allErrors.each {
+					message += "<li>${messageSource.getMessage(it)}</li>"
+				}
+				message += "</ul>"
+			}
+		}
 
-    def save = {
-        def clientInstance = new Client(params)
-        if (clientInstance.save(flush: true)) {
-            flash.message = "${message(code: 'default.created.message', args: [message(code: 'client.label', default: 'Client'), clientInstance.id])}"
-            redirect(action: "show", id: clientInstance.id)
-        }
-        else {
-            render(view: "create", model: [clientInstance: clientInstance])
-        }
-    }
+		//render [message:message, state:state, id:id] as JSON
+		def jsonData = [messsage: message, state: state, id: id]
+		render jsonData as JSON
+	}
 
-    def show = {
-        def clientInstance = Client.get(params.id)
-        if (!clientInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'client.label', default: 'Client'), params.id])}"
-            redirect(action: "list")
-        }
-        else {
-            [clientInstance: clientInstance]
-        }
-    }
+	
+	def listClient = {
+		def sortIndex = params.sidx ?: 'numero'
+		def sortOrder  = params.sord ?: 'asc'
 
-    def edit = {
-        def clientInstance = Client.get(params.id)
-        if (!clientInstance) {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'client.label', default: 'Client'), params.id])}"
-            redirect(action: "list")
-        }
-        else {
-            return [clientInstance: clientInstance]
-        }
-    }
+		def maxRows = Integer.valueOf(params.rows)
+		def currentPage = Integer.valueOf(params.page) ?: 1
 
-    def update = {
-        def clientInstance = Client.get(params.id)
-        if (clientInstance) {
-            if (params.version) {
-                def version = params.version.toLong()
-                if (clientInstance.version > version) {
-                    
-                    clientInstance.errors.rejectValue("version", "default.optimistic.locking.failure", [message(code: 'client.label', default: 'Client')] as Object[], "Another user has updated this Client while you were editing")
-                    render(view: "edit", model: [clientInstance: clientInstance])
-                    return
-                }
-            }
-            clientInstance.properties = params
-            if (!clientInstance.hasErrors() && clientInstance.save(flush: true)) {
-                flash.message = "${message(code: 'default.updated.message', args: [message(code: 'client.label', default: 'Client'), clientInstance.id])}"
-                redirect(action: "show", id: clientInstance.id)
-            }
-            else {
-                render(view: "edit", model: [clientInstance: clientInstance])
-            }
-        }
-        else {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'client.label', default: 'Client'), params.id])}"
-            redirect(action: "list")
-        }
-    }
+		def rowOffset = currentPage == 1 ? 0 : (currentPage - 1) * maxRows
 
-    def delete = {
-        def clientInstance = Client.get(params.id)
-        if (clientInstance) {
-            try {
-                clientInstance.delete(flush: true)
-                flash.message = "${message(code: 'default.deleted.message', args: [message(code: 'client.label', default: 'Client'), params.id])}"
-                redirect(action: "list")
-            }
-            catch (org.springframework.dao.DataIntegrityViolationException e) {
-                flash.message = "${message(code: 'default.not.deleted.message', args: [message(code: 'client.label', default: 'Client'), params.id])}"
-                redirect(action: "show", id: params.id)
-            }
-        }
-        else {
-            flash.message = "${message(code: 'default.not.found.message', args: [message(code: 'client.label', default: 'Client'), params.id])}"
-            redirect(action: "list")
-        }
-    }
+		def clients = Client.createCriteria().list(max: maxRows, offset: rowOffset) {
+
+			if (params.numero)
+				ilike('numero', '%' + params.numero + '%')
+
+			if (params.raison_social)
+				ilike('raison_social', '%' + params.raison_social + '%')
+
+			if (params.courriel)
+				ilike('courriel', '%' + params.courriel + '%')
+
+			order(sortIndex, sortOrder).ignoreCase()
+		}
+
+		def totalRows = clients.totalCount
+		def numberOfPages = Math.ceil(totalRows / maxRows)
+
+		def jsonCells = clients?.collect {
+			[
+				 cell: [
+					it.numero,
+					it.raison_social,
+					it.courriel
+				],
+				 id: it.id
+			]
+		}
+
+		def jsonData= [rows: jsonCells,
+					   page: currentPage,
+					   records: totalRows,
+					   total: numberOfPages]
+
+		render jsonData as JSON
+	}
+
 }

@@ -7,7 +7,7 @@
         <g:set var="entityName" value="${message(code: 'produit.label', default: 'Produit')}" />
         <title><g:message code="default.list.label" args="[entityName]" /></title>
 		<g:javascript library="jquery" plugin="jquery"/>
-		 <jq:resources />
+		<jq:resources />
         <jqui:resources /> 
         <jqgrid:resources />
 		<script type="text/javascript" >
@@ -22,8 +22,8 @@
 				                        {name:'emballage', editable:true},
 				                        {name:'format', editable:true},
 				                        {name:'upc', editable:true},
-				                        {name:'prix', formatter:'number', editable:true},
-				                         {name:'coutant', editable:true, edittype:'text', formatter:'currency'},
+				                        {name:'prix', formatter:'number'},
+				                         {name:'coutant', formatter:'currency'},
 				                        {name:'id', hidden: true}"
 				        sortname="'description'"
 				        caption="'Liste des produits'"
@@ -31,16 +31,16 @@
 					    autowidth="false"
 				        scrollOffset="0"
 				        viewrecords="true"
-				        filterToolBar="true",
 					    showPager="true"
 				        datatype="'json'"
-						rowNum="30",						
+						rowNum="12"
+						cellEdit="true"						
 				  		hidegrid="true">
-				        <jqgrid:searchButton id="book" />
-				        <jqgrid:filterToolbar id="commandeStandard" searchOnEnter="false" />
-				        <jqgrid:navigation id="commandeStandard" add="true" edit="true" 
+				        <jqgrid:searchButton id="commande" />
+				        <jqgrid:filterToolbar id="commande" searchOnEnter="false" />
+				        <jqgrid:navigation id="commande" add="true" edit="true" 
 				              del="true" search="true" refresh="true" />
-				        <jqgrid:resize id="commandeStandard" resizeOffset="-2" />
+				        <jqgrid:resize id="commande" resizeOffset="-2" />
 					</jqgrid:grid>
 		
 			    });
