@@ -23,8 +23,7 @@ class Produit {
 	static hasMany = [image: Image]
 	
 	static mapping = {
-		version false
-		
+		version false		
 	}
 	
 	String toString() {

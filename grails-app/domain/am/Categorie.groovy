@@ -6,6 +6,10 @@ class Categorie {
 	
 	static hasmany = [produits : Produit]
 
+	static mapping = {
+		version false
+	}
+	
 	static constraints = {
     }
 }

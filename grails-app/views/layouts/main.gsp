@@ -6,12 +6,16 @@
         <link rel="shortcut icon" href="${resource(dir:'images',file:'favicon.ico')}" type="image/x-icon" />
         <g:layoutHead />
         <g:javascript library="application" />
+		<jq:resources />
+        <jqgrid:resources/>
+        <jqgrid:scriptResources/>
+        <jqui:resources themeCss="../css/cupertino/jquery-ui-1.8.13.custom.css"/>         
     </head>
     <body>
         <div id="spinner" class="spinner" style="display:none;">
             <img src="${resource(dir:'images',file:'spinner.gif')}" alt="${message(code:'spinner.alt',default:'Loading...')}" />
         </div>
-        <div id="grailsLogo"><a href="http://grails.org"><img src="${resource(dir:'images',file:'grails_logo.png')}" alt="Grails" border="0" /></a></div>
+        <div id="amLogo"><img src="${resource(dir:'images',file:'AM_Logo.jpg')}" width="8%" alt="Action Marketing" border="0" /></div>
         <g:layoutBody />
     </body>
 </html>

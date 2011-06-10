@@ -7,6 +7,7 @@ class Image {
 	byte[] image
 	 
     static mapping = {
+		version false
 	}
 	
 	static constraints = {

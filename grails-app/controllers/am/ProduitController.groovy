@@ -4,7 +4,9 @@ import grails.converters.JSON
 
 class ProduitController {
 
-    static allowedMethods = [save: "POST", update: "POST", delete: "POST"]
+    static allowedMethods = [save: "POST", update: "POST", delete: "POST", confirmerCommande:"POST"]
+	
+	def CommandeService commandeService
 
     def index = {
         redirect(action: "list", params: params)
@@ -13,19 +15,47 @@ class ProduitController {
     def list = {
         params.max = Math.min(params.max ? params.int('max') : 10, 100)
 		def model = [produitInstanceList: Produit.list(params),
-					 produitInstanceTotal: Produit.count(), categories:
-					 Categorie.list().sort().nom]
+					 produitInstanceTotal: Produit.count(), Client: Client]
 
 		model
 		 
     }
-	def updateList = {
-		def categorie = Categorie.findByNom(params.categorieSelected)
-		
-		println "categorie.id --> ${categorie.id}"
-		[produitInstanceList: Produit.findAllByCategorieId(categorie?.id).sort(),
-			    produitInstanceTotal: Produit.findAllByCategorieId(categorie?.id).count()]
 
+	def setClient = {
+		def resultat
+		def nbr_caisse = 0
+		def pds = 0
+		def coutant = 0
+		
+		println "setClient params --> ${params}"
+		def client = Client.get(params.client_id)
+
+		def commande = Commande.findByClientAndStatut(client, 'En cours')
+		if (commande == null) {
+			commande = commandeService.createCommande(client)
+			flash.message = "Commande creer avec succes!!!"
+		}
+		
+		if (client == null) {
+			resultat = [resultat: 'failure']
+		} else {
+			resultat = [success: 'success',
+						commande: commande, 
+						totalCommande: commandeService.getTotalCommande(commande)]		
+		}
+		
+		println resultat
+		render resultat as JSON
+	}
+
+	def confirmerCommande = {
+		commandeService.comfirmerCommande(Commande.get(params.commande_id))		
+        flash.message = "Commande ${params.commande_id} confirmé, un représentant prendra contact avec vous."
+	}	
+	
+	def annulerCommande = {
+		commandeService.annulerCommande(Commande.get(params.commande_id))
+		flash.message = "Commande ${params.commande_id} annuler."		
 	}
 	
     def create = {
@@ -121,29 +151,55 @@ class ProduitController {
 			  byte[] bimage = image.image
 			  response.outputStream << bimage
 		  }
-
 	}
-	def updateNbrCaisse = {		
-
-		def cumulCaisse = 0
-		println "Total caisse avant: ${params.totCaisse}"
+	
+	def majCommande = {
+		println "majCommande params--> ${params}"
+		def rep
+		def resultat = [res:'success']
+		def commande
 		
-		if (params.totCaisse.isInteger()) {
-			cumulCaisse = params.totCaisse.toInteger() + params.nbrCaisses.toInteger()
+		if (params.commande_id) {
+			commande = Commande.get(params.commande_id)
 		} else {
-			cumulCaisse = params.nbrCaisses
+			commande = Commande.findByClientAndStatut(Client.get(params.client_id),'En cours')
+			if (commande == null){
+				commande = commandeService.createCommande(Client.get(params.client_id))
+			}
 		}
 		
-		render cumulCaisse.toString()
+		commande = commandeService.majCommande(commande, params.code, params.commande as int)
+		
+		println "majCommande params --> ${params}"
+		rep = [resultat: resultat, commande: commande, totalCommande: commandeService.getTotalCommande(commande)]
+		
+		render rep as JSON
+	}
+		
+	def updateCommande = {		
+		def state = "OK"
+		def message = "ti gui dou!!!"
+		def rowId = params.id
+		
+		def jsonData = [message: message, state: state, id: rowId]
+		render jsonData as JSON
 	}
 	
 	def listCommande = {
+		println "listCommande params --> ${params}"
+		def float zero = 0
 		def sortIndex = params.sidx ?: 'name'
 		def sortOrder  = params.sord ?: 'asc'
 		def maxRows = Integer.valueOf(params.rows)
 		def currentPage = Integer.valueOf(params.page) ?: 1
 		def rowOffset = currentPage == 1 ? 0 : (currentPage - 1) * maxRows
+
 		def produits = Produit.createCriteria().list(max: maxRows, offset: rowOffset) {
+			
+			isNotNull("description")
+			gt('prix', zero)
+			gt('coutant', zero)
+			
 			if (params.description)
 				ilike('description', "%${params.description}%")
 			
@@ -156,25 +212,37 @@ class ProduitController {
 			if (params.upc) {
 				ilike('upc', "%${params.upc}%")
 			}
-
+			
+			
 			order(sortIndex, sortOrder).ignoreCase()
 		}
 		
+		def commande
+		if (!params.commande_id) {
+			if (params.client_id) {
+				commande = Commande.findByClientAndStatut(Client.get(params.client_id),'En cours')
+			}
+		} else {
+			commande = Commande.get(params.commande_id)
+		}
+			
 		def totalRows = produits.totalCount
 		def numberOfPages = Math.ceil(totalRows / maxRows)
 		
-		def commande = 0
 		def results = produits?.collect {
+			def commande_produit = commande?.commande_produits.find { cp -> cp.produit.code == it.code }
+			
+			def nbr_caisse = (commande_produit == null) ? 0 : commande_produit.nbr_caisse
 			[
-				 cell: [it.description, it.code, it.emballage, it.format, it.upc, it.prix, it.coutant, commande],
+				cell: [it.description, it.code, it.emballage, it.format, it.upc, nbr_caisse, it.prix, it.coutant ],
 				 id: it.id
 			]
 		}
 		
-		def jsonData = [rows: results, page: currentPage, records: totalRows, total: numberOfPages]
+		def jsonData = [rows: results, page: currentPage, records: totalRows, total: numberOfPages, commande: commande]
 				render jsonData as JSON
     }
-
+	
 	def editCommande = {
 		def result
 		def message = ""

@@ -3,58 +3,60 @@ package am
 import grails.converters.JSON;
 
 class ClientController {
-
-	def scaffold = true
+	def clientService
 	
+	def scaffold = true
+
 	def defaultAction = 'list'
 
 		def editClient = {
-		def result
+		def client
+		def adresse
 		def message = ""
-		def state = "FAIL"
+		def state = ""
 		def id
 
 		// determine our action. Grid will pass a param called "oper"
 		switch (params.oper) {
 			// Delete Request
 			case 'del':
-				result = Client.get(params.id)
-				if (result) {
-					result.delete()
-					message = "Client'${result.numero}' Deleted"
+				client = Client.get(params.id)
+				if (client) {
+					client.delete()
+					message = "Client '${client}' Deleted"
 					state = "OK"
 				}
 				break;
 			// Add Request
 			case 'add':
-				result = new Client(params)
+				client = new Client(params)
+				client.adresse = new Adresse(params)
+				message = clientService.save(client)
+	
 				break;
 			// Edit Request
 			case 'edit':
 				// add or edit instruction sent
-				result = Client.get(params.id)
-				result.properties = params
+				client = Client.get(params.id)				
+				client.properties = params
+								
+				if (!client.adresse) {
+					client.adresse = new Adresse(params)				
+				}				
+				client.adresse?.properties = params				
+				
+				message = clientService.save(client)
 				break;
 		}
 
-		// If we aren't deleting the object then we need to validate and save.
-		// Capture any validation messages to display on the client side
-		if (result && params.oper != "del") {
-			if (!result.hasErrors() && result.save(flush: true)) {
-				message = "Client  '${result.numero}' " + (params.oper == 'add') ? "Added" : "Updated"
-				id = result.id
-				state = "OK"
-			} else {
-				message = "<ul>"
-				result.errors.allErrors.each {
-					message += "<li>${messageSource.getMessage(it)}</li>"
-				}
-				message += "</ul>"
-			}
+		if (message == "" || message == "OK") {
+			state = "OK"
+		} else {
+			state = "FAIL"
 		}
 
 		//render [message:message, state:state, id:id] as JSON
-		def jsonData = [messsage: message, state: state, id: id]
+		def jsonData = [message: message, state: state, id: id]
 		render jsonData as JSON
 	}
 
@@ -90,9 +92,14 @@ class ClientController {
 				 cell: [
 					it.numero,
 					it.raison_social,
-					it.courriel
+					it.adresse?.no_civic,
+					it.adresse?.rue,
+					it.adresse?.ville,
+					it.adresse?.code_postale,
+					it.courriel,
+					it.adresse?.id
 				],
-				 id: it.id
+				 id: it.id,
 			]
 		}
 

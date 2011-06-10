@@ -4,4 +4,5 @@
    del: ${attrs.del ?: false},
    search: ${attrs.search ?: false},
    refresh: ${attrs.refresh ?: false}
-});
+}
+);

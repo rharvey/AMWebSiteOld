@@ -1,14 +1,19 @@
 package am
 
 class Commande {
-	int id
+
 	Date date_commande
 	Date date_livraison
 	Client client
-	static hasMany = [produits : Commande_Produit]
+	String statut
+	static hasMany = [commande_produits : Commande_Produit]
+	static fetchMode = [commande_produits : 'eager']
+	Date dateCreated
+	Date lastUpdated
 	
 	static mapping = {
-		client column: "client_id"	
+		commande_produits cascade: "all-delete-orphan"
+		version false
 	}
 	
 	static constraints = {
